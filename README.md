@@ -1,5 +1,8 @@
 # ChromeRaptor
-Extractor de credenciales para navegador Chrome
+
+<img src="action.png">
+
+Un Simple extractor de credenciales para navegador Chrome para propositos educativos ;)
 
 ## Dependencias para la ejecucion del Script
 
@@ -8,4 +11,4 @@ pip install pycryptodome
 pip install pywin32
 ```
 
-El metodo para descifrar las credenciales del navegador solo funcionar en versiones <80
+Testeado en Windows 10-11. El metodo para descifrar las credenciales del navegador solo funcionar en versiones < 80
